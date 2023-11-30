@@ -1,0 +1,207 @@
+import random
+import time
+from collections import Counter, defaultdict
+
+#Διαδικασία Πίνακα Κατακερματισμού
+class HashTable:
+    #Αρχικοποίηση πίνακα με προκαθορισμένες παραμέτρους και έναν κενό πίνακα για την αποθήκευση κλειδίων-τιμών.
+    def __init__(self):
+        self.size = 101
+        self.table = [None] * self.size
+        self.count = 0
+        self.collisions = 0
+        
+    #Η built-in συνάρτηση της python για πίνακα κατακερματισου
+    def custom_hash(self, key):
+        return hash(key) % self.size
+    
+    #Η διαδικασία αλλαγής μεγέθου για τον πίνακα 
+    def resize(self):
+        self.size *= 2
+
+        while not self.is_prime(self.size):
+            self.size += 1
+
+        old_table = self.table
+        self.table = [None] * self.size
+        self.count = 0
+
+        for entry in old_table:
+            if entry is not None:
+                self.insert(entry[0], entry[1])
+                
+    #Συνάρτηση που ελέγχει αν ένας αριθμός ειναι πρώτος.
+    def is_prime(self, num):
+        if num < 2:
+            return False
+        for i in range(2, int(num**0.5) + 1):
+            if num % i == 0:
+                return False
+        return True
+    
+    #Η διαδικασία εισαγωγής κλειδιών-τιμών στον πίνακα.
+    def insert(self, key, value):
+        load_factor = (self.count + 1) / self.size
+
+        if load_factor > 0.7:
+            self.resize()
+
+        index = self.custom_hash(key)
+        collisions = 0
+
+        while self.table[index] is not None:
+            if self.table[index][0] == key:
+                self.table[index] = (key, value)
+                return
+            index = (index + 1) % self.size
+            collisions += 1
+
+        self.table[index] = (key, value)
+        self.count += 1
+
+        if collisions > 0:
+            self.collisions += collisions
+
+    #Ανάκτηση τιμών απο τον πίνακα
+    def get(self, key):
+        index = self.custom_hash(key)
+
+        while self.table[index] is not None:
+            if self.table[index][0] == key:
+                return self.table[index][1]
+            index = (index + 1) % self.size
+
+        raise KeyError(f"Key {key} not found")
+
+    #Επιστρέφει τον συνολικό αριθμό συγκρούσεων.
+    def get_total_collisions(self):
+        return self.collisions
+
+#Συνάρτηση που δημιουργεί νουμερά πιστωτικών καρτών αλλα με χρήση πίνακα κατακερματισμού.
+def credit_cards_with_hash(hash_table, batch_size=1000):
+    credit = []
+    random.seed(2585)
+    for i in range(0, 20000, batch_size):
+        batch_credit = [''.join([str(random.randint(0, 9)) for _ in range(16)]) for _ in range(batch_size)]
+        for card_number in batch_credit:
+            hash_table.insert(card_number, 0)
+            
+        credit.extend(batch_credit)
+    return credit
+
+#Συνάρτηση που δημιουργεί n χρεώσεις για τυχαία επιλεγμένες πιστωτικές κάρτες με χρήση πίνακα κατακερματισμού.
+def charge_with_hash(n, hash_table):
+    credit_charge = []
+    for i in range(n):
+        random_credit = random.choice(credit_card_numbers)
+
+        charge_amount = random.randint(10, 1000)
+        hash_table.insert(random_credit, hash_table.get(random_credit) + charge_amount)
+        credit_charge.append((random_credit, charge_amount))
+
+    return credit_charge
+
+#Συνάρτηση που δημιουργεί νουμερά πιστωτικών καρτών αλλα χωρίς χρήση πίνακα κατακερματισμού.
+def credit_cards_without_hash(batch_size=1000):
+    credit = []
+    random.seed(2585)
+    for i in range(0, 20000, batch_size):
+        batch_credit = [''.join([str(random.randint(0, 9)) for _ in range(16)]) for _ in range(batch_size)]
+        credit.extend(batch_credit)
+
+    return credit
+
+#Συνάρτηση που δημιουργεί n χρεώσεις για τυχαία επιλεγμένες πιστωτικές κάρτες χωρις χρήση πίνακα κατακερματισμού.
+def charge_without_hash(n):
+    credit_charge = []
+    for i in range(n):
+        random_credit = random.choice(credit_card_numbers)
+
+        charge_amount = random.randint(10, 1000)
+        credit_charge.append((random_credit, charge_amount))
+
+    return credit_charge
+
+#Συνάρτηση που βρίσκει το σύνολο των χρεώσεων για κάθε κάρτα χωρις χρήση πίνακα κατακερματισμού.
+def store_total_charges_without_hash(charges):
+    total_charges = defaultdict(int)
+    for credit, amount in charges:
+        total_charges[credit] += amount
+    return total_charges
+
+#Συνάρτηση που βρίσκει το μέγιστο πλήθος χρεώσεων που εγιναν και σε ποια κάρτα, χωρις χρήση πίνακα κατακερματισμού.
+def find_card_with_most_charges_without_hash(charges):
+    charge_counts = Counter(credit for credit, _ in charges)
+    most_charges_card = max(charge_counts, key=lambda credit: charge_counts[credit])
+    return most_charges_card, charge_counts[most_charges_card]
+
+#Συνάρτηση που βρίσκει το ελάχιστο πλήθος χρεώσεων που εγιναν και σε ποια κάρτα, χωρις χρήση πίνακα κατακερματισμού.
+def find_card_with_least_charges_without_hash(charges):
+    charge_counts = Counter(credit for credit, _ in charges)
+    least_charges_card = min(charge_counts, key=lambda credit: charge_counts[credit])
+    return least_charges_card, charge_counts[least_charges_card]
+
+#Συνάρτηση που βρίσκει το σύνολο των χρεώσεων για κάθε κάρτα με χρήση πίνακα κατακερματισμού.
+def store_total_charges(charges, hash_table):
+    total_charges = defaultdict(int)
+    for credit, amount in charges:
+        total_charges[credit] += amount
+    return total_charges
+
+#Συνάρτηση που βρίσκει το μέγιστο πλήθος χρεώσεων που εγιναν και σε ποια κάρτα, με χρήση πίνακα κατακερματισμού.
+def find_card_with_most_charges(charges, hash_table):
+    charge_counts = {}
+    for credit, _ in charges:
+        charge_counts[credit] = charge_counts.get(credit, 0) + 1
+
+    most_charges_card = max(charge_counts, key=lambda credit: charge_counts[credit])
+    return most_charges_card, charge_counts[most_charges_card]
+
+#Συνάρτηση που βρίσκει το ελάχιστο πλήθος χρεώσεων που εγιναν και σε ποια κάρτα, με χρήση πίνακα κατακερματισμού.
+def find_card_with_least_charges(charges, hash_table):
+    charge_counts = {}
+    for credit, _ in charges:
+        charge_counts[credit] = charge_counts.get(credit, 0) + 1
+
+    least_charges_card = min(charge_counts, key=lambda credit: charge_counts[credit])
+    return least_charges_card, charge_counts[least_charges_card]
+
+n=1000000 #Πλήθος επαναλήψεων για τις συναρτήσεις χρεωσεων(charge_without_hash, charge_with_hash).
+#Κώδικας χωρίς πίνακα κατακερματισμού.
+start_time_without_hash = time.time()
+credit_card_numbers = credit_cards_without_hash()
+charges_without_hash = charge_without_hash(n)
+total_charges_without_hash = store_total_charges_without_hash(charges_without_hash)
+max_card_without_hash = max(total_charges_without_hash, key=lambda credit: total_charges_without_hash[credit])
+min_card_without_hash = min(total_charges_without_hash, key=lambda credit: total_charges_without_hash[credit])
+most_charges_card_without_hash, max_charge_count_without_hash = find_card_with_most_charges_without_hash(charges_without_hash)
+least_charges_card_without_hash, min_charge_count_without_hash = find_card_with_least_charges_without_hash(charges_without_hash)
+end_time_without_hash = time.time()
+execution_time_without_hash = end_time_without_hash - start_time_without_hash
+print("Without Hash Table:")
+print(f"Execution time: {execution_time_without_hash} seconds")
+print(f"The credit card with the maximum total charges is {max_card_without_hash} with a total charge of ${total_charges_without_hash[max_card_without_hash]}")
+print(f"The credit card with the minimum total charges is {min_card_without_hash} with a total charge of ${total_charges_without_hash[min_card_without_hash]}")
+print(f"The credit card with the most charges is {most_charges_card_without_hash} with {max_charge_count_without_hash} charges.")
+print(f"The credit card with the least charges is {least_charges_card_without_hash} with {min_charge_count_without_hash} charges.")
+
+#Κώδικας με πίνακα κατακερματισμού.
+start_time_with_hash = time.time()
+hash_table = HashTable()
+credit_card_numbers = credit_cards_with_hash(hash_table)
+charges_with_hash = charge_with_hash(n,hash_table)
+total_charges_with_hash = store_total_charges(charges_with_hash, hash_table)
+max_card_with_hash = max(total_charges_with_hash, key=lambda credit: total_charges_with_hash[credit])
+min_card_with_hash = min(total_charges_with_hash, key=lambda credit: total_charges_with_hash[credit])
+most_charges_card_with_hash, max_charge_count_with_hash = find_card_with_most_charges(charges_with_hash, hash_table)
+least_charges_card_with_hash, min_charge_count_with_hash = find_card_with_least_charges(charges_with_hash, hash_table)
+total_collisions_with_hash = hash_table.get_total_collisions()
+end_time_with_hash = time.time()
+execution_time_with_hash = end_time_with_hash - start_time_with_hash
+print("\nWith Hash Table:")
+print(f"Execution time: {execution_time_with_hash} seconds")
+print(f"Total collisions: {total_collisions_with_hash}")
+print(f"The credit card with the maximum total charges is {max_card_with_hash} with a total charge of ${total_charges_with_hash[max_card_with_hash]}")
+print(f"The credit card with the minimum total charges is {min_card_with_hash} with a total charge of ${total_charges_with_hash[min_card_with_hash]}")
+print(f"The credit card with the most charges is {most_charges_card_with_hash} with {max_charge_count_with_hash} charges.")
+print(f"The credit card with the least charges is {least_charges_card_with_hash} with {min_charge_count_with_hash} charges.")
